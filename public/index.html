@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ValidadApp</title>
+<style>
+* {margin: 0; padding: 0; box-sizing: border-box;}
+body {font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #02040d 0%, #0f1524 100%); min-height: 100vh; color: #e8f6ff; display: flex; align-items: center; justify-content: center; padding: 20px;}
+.auth-container {width: 100%; max-width: 400px;}
+.login-form, .register-form {background: rgba(20, 24, 41, 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(0, 240, 255, 0.2); border-radius: 12px; padding: 30px; display: none;}
+.login-form.active, .register-form.active {display: block;}
+.form-header {text-align: center; margin-bottom: 30px;}
+.form-header h1 {font-size: 28px; color: #00f0ff; margin-bottom: 8px;}
+.form-header p {color: #aaa; font-size: 14px;}
+label {display: block; margin-bottom: 8px; color: #e8f6ff; font-weight: 500; font-size: 12px; text-transform: uppercase;}
+input, select {width: 100%; padding: 12px; background: rgba(15, 21, 36, 0.8); border: 1px solid rgba(0, 240, 255, 0.2); border-radius: 8px; color: #e8f6ff; font-size: 14px; margin-bottom: 16px; font-family: inherit;}
+input:focus, select:focus {outline: none; border-color: #00f0ff; box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);}
+.btn {width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; min-height: 44px;}
+.btn-primary {background: linear-gradient(135deg, #00f0ff, #5acdff); color: #02040d; margin-bottom: 12px;}
+.toggle-form {background: none; border: none; color: #00f0ff; text-align: center; font-size: 14px; padding: 0; cursor: pointer;}
+.dashboard {display: none;}
+.dashboard.active {display: block;}
+.container {max-width: 100%; margin: 0 auto; padding: 12px;}
+header {background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(183, 96, 255, 0.1)); border: 1px solid rgba(0, 240, 255, 0.2); padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #00f0ff; display: flex; justify-content: space-between; align-items: center;}
+header h1 {font-size: 24px; color: #00f0ff;}
+.card {background: rgba(20, 24, 41, 0.5); border: 1px solid rgba(0, 240, 255, 0.2); border-radius: 12px; padding: 16px; margin-bottom: 20px;}
+.card h2 {color: #00f0ff; margin-bottom: 16px; font-size: 18px; font-weight: 600;}
+.stats-grid {display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px;}
+.stat-box {background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(183, 96, 255, 0.1)); border: 1px solid rgba(0, 240, 255, 0.2); padding: 16px 8px; border-radius: 10px; text-align: center;}
+.stat-number {font-size: 32px; font-weight: 800; color: #00f0ff;}
+.stat-label {font-size: 10px; color: #aaa; text-transform: uppercase;}
+</style>
+</head>
+<body>
+<div class="auth-container">
+<div class="login-form active">
+<div class="form-header">
+<h1>🍦 ValidadApp</h1>
+<p>Controle de Validade</p>
+</div>
+<label>Email</label>
+<input type="email" id="loginEmail" placeholder="gerente@calebito.com">
+<label>Senha</label>
+<input type="password" id="loginPassword" placeholder="123456">
+<button class="btn btn-primary" onclick="login()">🔓 Entrar</button>
+<center><button class="toggle-form" onclick="toggleForm()">Criar nova conta</button></center>
+</div>
+<div class="register-form">
+<div class="form-header">
+<h1>🍦 ValidadApp</h1>
+<p>Criar Conta</p>
+</div>
+<label>Nome</label>
+<input type="text" id="registerName">
+<label>Email</label>
+<input type="email" id="registerEmail">
+<label>Senha</label>
+<input type="password" id="registerPassword">
+<label>Confirmar Senha</label>
+<input type="password" id="registerPassword2">
+<label>Função</label>
+<select id="registerRole"><option value="operario">Operário</option><option value="gerente">Gerente</option></select>
+<button class="btn btn-primary" onclick="register()">✨ Criar Conta</button>
+<center><button class="toggle-form" onclick="toggleForm()">Voltar</button></center>
+</div>
+</div>
+<div class="dashboard" id="dashboard">
+<div class="container">
+<header><div><h1>🍦 ValidadApp</h1></div><div><p id="userName">Usuário</p><button class="btn btn-primary" style="width:auto;padding:8px 16px;margin:0;" onclick="logout()">Sair</button></div></header>
+<div class="card"><h2>Dashboard</h2><div class="stats-grid"><div class="stat-box"><div class="stat-number" id="totalProducts">0</div><div class="stat-label">Total</div></div><div class="stat-box"><div class="stat-number" id="vencidoCount">0</div><div class="stat-label">Vencidos</div></div><div class="stat-box"><div class="stat-number" id="proximoCount">0</div><div class="stat-label">Próximos</div></div></div></div>
+<div id="allProducts" style="color:#aaa;text-align:center;padding:40px;">Nenhum produto</div>
+</div>
+</div>
+<script>
+const API = '/api';
+async function login() {
+const email = document.getElementById('loginEmail').value;
+const password = document.getElementById('loginPassword').value;
+try {
+const res = await fetch(API + '/auth/login', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({email, password})});
+const data = await res.json();
+if (res.ok) {
+localStorage.setItem('token', data.token);
+localStorage.setItem('user', JSON.stringify(data.user));
+document.querySelector('.auth-container').style.display = 'none';
+document.getElementById('dashboard').classList.add('active');
+document.getElementById('userName').textContent = data.user.name;
+load();
+} else {
+alert('Erro: ' + (data.error || 'Falha ao fazer login'));
+}
+} catch (e) {
+alert('Erro de conexão');
+}
+}
+async function register() {
+const name = document.getElementById('registerName').value;
+const email = document.getElementById('registerEmail').value;
+const password = document.getElementById('registerPassword').value;
+const password2 = document.getElementById('registerPassword2').value;
+const role = document.getElementById('registerRole').value;
+if (password !== password2) {
+alert('Senhas não conferem!');
+return;
+}
+try {
+const res = await fetch(API + '/auth/register', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name, email, password, role})});
+if (res.ok) {
+alert('Conta criada! Faça login.');
+document.querySelector('.login-form').classList.add('active');
+document.querySelector('.register-form').classList.remove('active');
+} else {
+alert('Erro ao criar conta');
+}
+} catch (e) {
+alert('Erro de conexão');
+}
+}
+function toggleForm() {
+document.querySelector('.login-form').classList.toggle('active');
+document.querySelector('.register-form').classList.toggle('active');
+}
+function logout() {
+localStorage.removeItem('token');
+localStorage.removeItem('user');
+location.reload();
+}
+async function load() {
+const token = localStorage.getItem('token');
+if (!token) return;
+try {
+const res = await fetch(API + '/stats', {headers: {'Authorization': 'Bearer ' + token}});
+const stats = await res.json();
+document.getElementById('totalProducts').textContent = stats.totalProducts;
+document.getElementById('vencidoCount').textContent = stats.vencidos;
+document.getElementById('proximoCount').textContent = stats.proximos;
+} catch (e) {}
+}
+if (localStorage.getItem('token')) {
+document.querySelector('.auth-container').style.display = 'none';
+document.getElementById('dashboard').classList.add('active');
+load();
+}
+</script>
+</body>
+</html>
